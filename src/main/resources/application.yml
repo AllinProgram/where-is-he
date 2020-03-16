@@ -1,0 +1,11 @@
+spring:
+  mail:
+    host: smtp_server
+    username: address@domain.com
+    password: password
+    default-encoding: UTF-8
+
+# 发送账号
+mail:
+  fromMail:
+    addr: address@domain.com
