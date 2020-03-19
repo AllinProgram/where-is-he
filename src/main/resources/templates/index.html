@@ -11,6 +11,10 @@
     <link rel="stylesheet" type="text/css"
           href="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.css">
     <link href="https://fonts.googleapis.com/css?family=ZCOOL+KuaiLe&display=swap" rel="stylesheet">
+    <link href="/webjars/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+    <script src="/webjars/jquery/jquery.min.js"></script>
+    <script src="/webjars/sockjs-client/sockjs.min.js"></script>
+    <script src="/webjars/stomp-websocket/stomp.min.js"></script>
     <style>
         body {
             font-family: 'ZCOOL KuaiLe', cursive;
@@ -36,7 +40,7 @@
                     并且家里在那儿种有茶叶，长势喜人，质量贼高！
                     但是因为疫情无法销售出去，让我帮帮她。
                     我这好心肠哪能弃之不顾啊，但是为了防止被骗，
-                    我便设计了本工具，去拿到她的IP地址，
+                    我便设计了本工具，去拿到她的IP地址以定位，
                     确定她是不是真的在塔克拉玛干。
                 </p>
             </div>
@@ -45,44 +49,109 @@
             <div style="text-align: center;">
                 <h3>使用说明</h3>
                 <a href="https://github.com/ufan0/where-is-he" target="_blank">
-                    <h5>Tips: 服务器端不存储任何数据，源码已经公布在Github。</h5>
+                    <h5>Tips: 服务器端不存储任何数据，源码已经公布在Github，请点击本消息查看；</h5>
                 </a>
                 <br>
                 <li>
-                    提交邮箱即可获得一次性地址，有效期3分钟，
-                    一旦该地址被访问，服务器便会发送访问者IP到用户提交的邮箱；
+                    自定义跳转地址以生成临时访问链接，临时访问链接会重定向到用户预先设置的跳转地址，有效期3分钟；
                 </li>
                 <li>
-                    若正确操作，未出现预期结果，很可能是服务器邮件服务被BLOCK，
-                    请自行获取源码搭建使用。
+                    临时访问链接每次被访问，服务器都会将访问者IP发送到到当前页面，请勿刷新页面，否则临时链接失效；
                 </li>
                 <li>
-                    为了保证本页面能够正常工作，请爱惜服务器资源，切勿重复提交数据，谢谢；
+                    若正确操作，未出现预期结果，很可能是服务器宕掉，请自行获取源码搭建使用；
+                </li>
+                <li>
+                    为了保证本页面能够正常演示，请爱惜服务器资源，切勿重复提交数据，谢谢；
                 </li>
                 <div class="ui divider"></div>
-                <div class="ui form">
-                    <form action="/ip" method="POST">
+                <div class="ui">
+                    <form id="form">
                         <div class="field">
-                            <label for="email">请输入接收IP地址的E-mail</label>
-                            <input id="email" name="email" type="email" placeholder="dear@jhon.com" required>
+                            <label for="url">请输入伪装地址</label>
+                            <input id="url" name="url" type="url" placeholder="如 https://nclgclub.com/" required>
                         </div>
-                        <input type="submit" class="ui submit button">
                     </form>
+                    <div id="submit">
+                        <button onclick="sendUrl()" class="ui button">提交</button>
+                    </div>
                 </div>
             </div>
-            <div style="text-align: center;">
+            <div id="copy" style="text-align: center;">
                 <div class="ui divider"></div>
-                <div class="ui action input" th:if="${url != '' && url != null}">
-                    <input type="text" th:value="${url}">
-                    <button class=" ui teal right labeled icon button">
-                        <i class="copy icon"></i>
-                        请手动复制
+                <div class="ui action input">
+                    <input id="encodeReverse" type="text">
+                    <button class="ui teal right labeled icon button">
+                        <i class="copy icon"></i>请手动复制
                     </button>
+                </div>
+                <div class="row">
+                    <div class="col-md-12">
+                        <table id="conversation" class="table table-striped">
+                            <thead>
+                            <tr>
+                                <th style="text-align: center">IP</th>
+                            </tr>
+                            </thead>
+                            <tbody id="infos">
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
+<script>
+    var stompClient = null;
+    $("#copy").hide();
+
+    // 上传用户自定义的伪装地址
+    function sendUrl() {
+        let url = document.querySelector("#form");
+        let form = new FormData(url);
+
+        if (form.get("url") === "")
+            alert("请不要让伪装地址为空");
+        else {
+            $("#submit").hide();
+            fetch('/mask/where-is-he', {
+                method: 'POST',
+                body: form
+            }).then(res => res.text())
+                .then(res => getEncodeReverse(res))
+        }
+    }
+
+    // 大坑，不熟悉Fetch，不能在Fetch里使用匿名函数
+    function getEncodeReverse(encodeReverse) {
+        console.log(encodeReverse);
+        console.log("encodeReverse :" + encodeReverse);
+        if (encodeReverse != null) {
+            // 地址传入复制框，并显示
+            $("#encodeReverse").val("https://overflow.fun/mask/" + encodeReverse);
+            $("#copy").show();
+            // 建立WS
+            connect("/topic/user/" + encodeReverse.split("").reverse().join(""));
+        }
+    }
+
+    function connect(api) {
+        var socket = new SockJS('/websocket');
+        stompClient = Stomp.over(socket);
+        stompClient.connect({}, function (frame) {
+            console.log('Connected: ' + frame);
+            stompClient.subscribe(api, function (info) {
+                showInfo(info.body);
+            });
+        });
+    }
+
+    function showInfo(info) {
+        $("#infos").append("<tr><td>" + info + "</td></tr>");
+    }
+
+</script>
 </body>
 
 </html>

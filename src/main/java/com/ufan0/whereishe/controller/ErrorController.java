@@ -1,4 +1,4 @@
-package com.ufan0.recordip.controller;
+package com.ufan0.whereishe.controller;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

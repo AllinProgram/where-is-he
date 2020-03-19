@@ -1,10 +1,10 @@
-package com.ufan0.recordip;
+package com.ufan0.whereishe;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-class RecordipApplicationTests {
+class WhereIsHeApplicationTests {
 
     @Test
     void contextLoads() {

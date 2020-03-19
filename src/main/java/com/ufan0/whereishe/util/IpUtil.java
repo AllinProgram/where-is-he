@@ -1,4 +1,4 @@
-package com.ufan0.recordip.util;
+package com.ufan0.whereishe.util;
 
 import org.springframework.stereotype.Component;
 
