@@ -5,7 +5,7 @@
 
   本服务基于Spring Boot构建，旨在作为中间者，为提供用户一个临时地址，获取访问者信息给用户。
 
-  在线Demo: https://overflow.fun/mask/where-is-he
+  在线Demo: ~~https://overflow.fun/mask/where-is-he~~
 
   通知方式已由邮箱替换成页面提示，基于WebSocket实现。
 
